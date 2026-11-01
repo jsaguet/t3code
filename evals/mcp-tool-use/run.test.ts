@@ -427,6 +427,27 @@ it("stops a sample only once a must-not check has failed", () => {
 });
 
 const decodeDeviceCase = Schema.decodeSync(Schema.fromJsonString(McpToolUseCase));
+it.each([
+  { text: "7: queued", pass: true },
+  { text: "- **PR #7**: open, queued", pass: true },
+  { text: "| #7 | open | queued |", pass: true },
+  { text: "7: not queued\n8: queued", pass: false },
+  { text: "7: open\n8: queued", pass: false },
+  { text: "17: queued\n7: not queued", pass: false },
+])("grades queue membership on PR 7's own line: $text", ({ text, pass }) => {
+  const testCase = decodeDeviceCase(
+    NodeFS.readFileSync(new URL("./cases/merge-queue.ndjson", import.meta.url), "utf8").trim(),
+  );
+  const checks = gradeSample(
+    { textMust: testCase.expect.textMust?.slice(0, 1) },
+    { calls: [], text, stopReason: "end_turn" },
+  );
+  assert.deepEqual(
+    checks.map((check) => check.pass),
+    [pass],
+  );
+});
+
 const deviceCases = () =>
   NodeFS.readFileSync(new URL("./cases/device-manager.ndjson", import.meta.url), "utf8")
     .trim()
